@@ -55,6 +55,16 @@ The IWSPA 2024 paper "LLMs for Explainable Few-shot Deception Detection" (Boumbe
 - Counts: the paper gives 599 deceptive job scams (60 in a 10% test split), which matches this test set. For phishing, the IWSPA text mentions 14,219 texts (about 1,422 in the test split). The dataset page lists 15,272 texts with a test split of 1,528, which is the size used here.
 - The other IWSPA 2024 paper (Hanks et al., LIWC features) uses different data, a Random Forest, 5-fold cross-validation and weighted F1. It is not comparable and was not reproduced.
 
+## Why two domains are below the paper
+
+Political statements (0.7427 vs 0.7640) and Job scams (0.6337 vs 0.6729) are below the paper's plain fine-tuning row. What I know:
+
+- **The gap is not clearly real.** In both domains the paper's number is inside my 95% confidence interval. On Job scams, two runs of the same code gave 0.6465 and 0.6139, so a gap of 0.04 is within the change between runs.
+- **Political statements:** F1 is a weak measure here. AUC is only about 0.67, and the all-deceptive answer scores 0.783, higher than both my result and the paper's. Most of the confident false alarms mention Obama or Obamacare, which may be a topic shortcut (not proven).
+- **Job scams:** the test set has only 60 deceptive texts. The model missed 29 of them, and many read like normal job ads. This may be label noise (not verified).
+- **What I tried:** longer inputs and more epochs, class weights, undersampling, RoBERTa, a higher learning rate, and threshold tuning (see "What was tried"). I kept the best setting on validation for each domain.
+- **What I did not do:** tune on the test set. The only gain I saw (Political 0.783 with threshold tuning) is the same as the trivial answer, so I do not count it. I also did not run more seeds, use a larger model or build the adapter methods. I do not know how much the paper's number moves between runs.
+
 ## Baseline: TF-IDF + logistic regression
 
 A simple model that counts words and word pairs, with no pre-trained language model. Settings were fixed before looking at results (C=4) and not tuned on test. One run per domain, no CI. Run with `python -m src.tfidf`.
