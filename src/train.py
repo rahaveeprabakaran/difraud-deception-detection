@@ -21,6 +21,7 @@ from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
                           set_seed)
 
 from src.data import DOMAINS, load_domain, load_manifest
+from src.transfer import score_targets
 
 # Only these models can be loaded. Add a model here only after checking it ships
 # a model.safetensors file on its Hugging Face page.
@@ -75,6 +76,8 @@ def main():
     ap.add_argument("--balance", action="store_true", help="class-weighted loss")
     ap.add_argument("--undersample", action="store_true",
                     help="train on all minority-class texts plus an equal-size random sample of the majority class")
+    ap.add_argument("--transfer", action="store_true",
+                    help="also score every OTHER domain's test set once (labels and scores only)")
     ap.add_argument("--out", default="results")
     a = ap.parse_args()
 
@@ -84,6 +87,8 @@ def main():
     print("Data report:", json.dumps(report))
     if report["leak_train_test"] or report["leak_train_val"]:
         print("WARNING: identical texts appear in train and eval splits. See report.")
+
+    train_texts_full = list(splits["train"][0])  # for the cross-domain overlap check
 
     if a.undersample:
         rng = np.random.default_rng(a.seed)
@@ -129,6 +134,12 @@ def main():
         # Only labels and scores are saved, never the texts.
         preds[s] = {"y": [int(v) for v in p.label_ids], "p1": [round(float(v), 5) for v in probs]}
     res["predictions"] = preds
+    if a.transfer:
+        def predict_probs(texts, labels):
+            enc = tok(texts, truncation=True, max_length=a.max_len)
+            out = tr.predict(TextDataset(enc, labels))
+            return torch.softmax(torch.tensor(out.predictions), dim=-1)[:, 1].numpy()
+        res["transfer"] = score_targets(a.domain, train_texts_full, manifest, predict_probs)
     res["meta"] = {
         "domain": a.domain, "model": a.model, "seed": a.seed, "balance": a.balance,
         "undersample": a.undersample, "n_train_used": len(splits["train"][1]), "epochs": a.epochs, "lr": a.lr, "max_len": a.max_len, "batch_size": a.batch_size,
