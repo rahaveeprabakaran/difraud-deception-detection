@@ -1,0 +1,8 @@
+# Tested on Google Colab (T4 GPU, Python 3.13) with Colab's preinstalled torch, numpy and scikit-learn.
+# Install inside a virtual environment or a fresh Colab runtime, never system Python.
+# Pip warnings about gradio/diffusers on Colab are unrelated to this project.
+transformers==4.46.3
+accelerate==1.1.1
+huggingface_hub==0.26.2
+# Also needed (use the versions already on Colab, or any recent release): torch, numpy, scikit-learn
+# For the tests only: pytest
