@@ -147,7 +147,10 @@ python -m src.errors --domain job_scams --run results_pred/<file>.json --kind fn
 python -m src.dupes --domain phishing --run results_pred/<file>.json
 python -m src.overlap --domain phishing                            # repeated-text check
 python -m pytest -q tests                                          # unit tests
+bash make_report.sh                                                # rebuild all tables and the figure (no GPU needed)
 ```
+
+`make_report.sh` also saves the library versions it used to `results_pred/versions.txt` (python, torch, transformers, numpy, scikit-learn).
 
 `python -m src.data pin` creates `data_manifest.json`: the dataset commit (`aaaf94b336c563a14806bb4f3f58727bed9ed8d4`) and a SHA-256 for each file.
 
@@ -174,5 +177,6 @@ results_pred/   final runs with saved predictions, plus analysis.md
 results_tfidf/  TF-IDF baseline results
 data_manifest.json   pinned dataset version and file hashes
 run_all.sh      runs all 7 domains
+make_report.sh  rebuilds all tables and the figure from saved runs
 run_transfer.sh optional cross-domain experiment (code only, no results reported)
 ```
