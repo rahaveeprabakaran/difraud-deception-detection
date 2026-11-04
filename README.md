@@ -51,7 +51,7 @@ CPU-only baseline (`python -m src.tfidf`): word 1-2-grams, logistic regression w
 | Twitter rumours | +0.016 | [-0.026, +0.058] | no |
 | Job scams | +0.153 | [+0.038, +0.285] | yes at threshold 0.5, but see below |
 
-- Job scams: the gap at 0.5 comes mostly from TF-IDF's poor calibration. With a threshold tuned on validation TF-IDF reaches 0.629 against 0.634 for the transformer (AP 0.729 vs 0.725), so the two rank texts about equally well.
+- Job scams: the gap at 0.5 comes mostly from TF-IDF's poor calibration. With thresholds tuned on validation, both models reach about the same F1 (TF-IDF 0.629, transformer ensemble 0.628), and AP is 0.729 vs 0.725, so the two rank texts about equally well.
 - The intervals cover test-sampling noise only, not training randomness. The transformer rows for Political, Twitter and Job scams are 3-seed ensembles; TF-IDF is a single model.
 - Product reviews at threshold 0.5 (0.653) is below the trivial classifier (0.667).
 - Words with the largest weights suggest possible shortcuts (hypotheses, not proof): Twitter weights are event names (e.g. charliehebdo, ferguson); phishing "genuine" weights include enron, dnc, 2001/2002 (the genuine and phishing emails may come from different sources); Political weights include obamacare, as in the transformer errors.
@@ -125,9 +125,10 @@ python -m src.dupes --domain phishing --run results_pred/<file>.json
 ## Layout
 
 ```
-src/        data.py, train.py, analyze.py, threshold.py, errors.py, dupes.py, aggregate.py
+src/        data.py, train.py, analyze.py, threshold.py, errors.py, dupes.py, aggregate.py, tfidf.py, paired.py, figure.py
 tests/      data validation tests (pytest)
 results*/   one JSON per run (metrics, settings, library versions, saved scores)
 results_pred/   final runs with saved predictions, plus analysis.md
+results_tfidf/  TF-IDF baseline results (tfidf.json, tfidf.md)
 data_manifest.json   pinned dataset version and file hashes
 ```
