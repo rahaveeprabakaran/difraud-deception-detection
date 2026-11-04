@@ -2,7 +2,7 @@
 
 A reproducible pipeline for the DIFrauD benchmark (Boumber, Qachfar, Verma, LREC-COLING 2024): fine-tune a transformer on each of the 7 domains and report binary F1 with "deceptive" as the positive class, on the released 80/10/10 splits. Results are compared with the paper's Table 2.
 
-**Scope.** This repo compares only with the LREC-COLING 2024 paper (plain fine-tuning row, "finetune, tgt"). I have not compared with the IWSPA 2024 papers. The paper numbers in this README were transcribed from Table 2 and should be checked against the PDF.
+**Scope.** Two papers use the DIFrauD splits and the same binary F1 (deceptive = positive): LREC-COLING 2024 (Boumber, Qachfar, Verma) and the IWSPA 2024 paper "LLMs for Explainable Few-shot Deception Detection" (Boumber, Tuck, Verma, Qachfar). The IWSPA paper's Table 2 repeats the COLING baselines (the fine-tune row below is identical in both) and adds few-shot LLM rows (RADDICL). This repo therefore compares with the plain fine-tuning row of that shared Table 2, and also lists the other rows in the section "Comparison with the other rows of Table 2". The other IWSPA 2024 paper (Hanks et al., "Domain Independent Deception Detection: Feature Sets, LIWC Efficacy...") uses different data, LIWC features (commercial software), a Random Forest, 5-fold cross-validation and weighted F1, so it is not comparable and was not reproduced. The adapter methods (PreXIA, MAM, UniPELT) were not reimplemented.
 
 ## Results
 
@@ -24,6 +24,23 @@ Single-run rows use seed 42. "Ensemble" rows average the predicted probabilities
 - Matches or exceeds the paper's plain fine-tuning on 5 of 7 domains. On Twitter, Political and Job scams the paper's number lies inside the confidence interval, so no difference can be claimed.
 - Political statements is near chance for text-only models: AUC about 0.67, and the trivial classifier (0.783) beats every default-threshold result here. The paper's own fine-tune score (0.764) is also below that trivial score, so F1 on the deceptive class is a weak measure in this domain.
 - Job scams has strong ranking (AUC 0.96) but F1 is limited by only 60 deceptive test texts and by confident errors (see below).
+
+## Comparison with the other rows of Table 2 (IWSPA 2024, LLM paper)
+
+Test F1, binary, deceptive = positive, same splits. Paper rows are copied from Table 2 of the IWSPA 2024 LLM paper, which reproduces the COLING 2024 baselines. "Mean" is the unweighted mean over the 7 domains; ours uses 3-seed ensembles for Political, Twitter and Job scams and a single run for the other four.
+
+| Method | Pols | News | Jobs | Prod | Phish | Twitter | SMS | Mean |
+|---|---|---|---|---|---|---|---|---|
+| This work (BERT / RoBERTa fine-tuned) | 0.7427 | 0.9841 | 0.6337 | 0.7192 | 0.9860 | 0.8199 | 0.9883 | 0.8391 |
+| Paper: Finetune bert-base-uncased | 0.7640 | 0.9773 | 0.6729 | 0.6968 | 0.9859 | 0.7944 | 0.9883 | 0.8399 |
+| Paper: RADDICL-3 (4-shot LLM) | 0.7786 | 0.8867 | 0.6606 | 0.4058 | 0.9769 | 0.8511 | 0.7475 | 0.7582 |
+| Paper: PreXIA + BERT (adapter) | 0.7881 | 0.9881 | 0.7350 | 0.7206 | 0.9896 | 0.8511 | 0.9723 | 0.8635 |
+
+- Our mean (0.8391) is level with the plain fine-tuning row (0.8399): above it on fake news, product reviews and Twitter, level on SMS and phishing, below on Political and Job scams.
+- It is above the few-shot LLM (RADDICL-3, mean 0.7582) on 4 of 7 domains (fake news, product reviews, phishing, SMS), but RADDICL-3 is higher on Political, Job scams and Twitter.
+- It is below the adapter methods (PreXIA mean 0.8635), which were not reimplemented.
+- Political statements: the all-deceptive baseline scores 0.783, higher than every row in this table, so F1 on that domain says little (the IWSPA paper itself notes that binary F1 can be unstable when the positive class dominates).
+- Counts: the paper reports 599 deceptive job scams (60 in a 10% test split), matching our test set. For phishing the paper reports 14,219 texts (about 1,422 in a 10% test split), but our test split has 1,528. The pinned dataset revision may differ from the one used in the papers; I have not checked this.
 
 ## Simple baseline: TF-IDF + logistic regression
 
@@ -81,6 +98,7 @@ Final configs: BERT-base default for fake news, phishing, product reviews, SMS a
 
 - *Job scams.* At threshold 0.5, 29 of 60 deceptive test texts were missed, often with probability near 0, and many of them read like ordinary job ads. Some texts labeled genuine contain classic scam cues. This suggests label noise or cues outside the text. I have not verified how the labels were produced.
 - *Political statements.* 11 of the 15 highest-confidence false positives mention Obama or Obamacare, which suggests a topic shortcut. The missed deceptive texts are mostly neutral statistics.
+- *Product reviews.* The IWSPA 2024 LLM paper (Section 5.3) suspects that the fine-tuned models pick up a pattern of the crowd workers who wrote part of the "deceptive" reviews, not opinion spam itself. I did not test this.
 
 ## Data checks
 
