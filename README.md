@@ -65,6 +65,32 @@ Political statements (0.7427 vs 0.7640) and Job scams (0.6337 vs 0.6729) are bel
 - **What I tried:** longer inputs and more epochs, class weights, undersampling, RoBERTa, a higher learning rate, and threshold tuning (see "What was tried"). I kept the best setting on validation for each domain.
 - **What I did not do:** tune on the test set. The only gain I saw (Political 0.783 with threshold tuning) is the same as the trivial answer, so I do not count it. I also did not run more seeds, use a larger model or build the adapter methods. I do not know how much the paper's number moves between runs.
 
+## Extra (not part of the task): cross-domain transfer
+
+Question (from my first email to Prof. Verma): if a detector is trained on one domain, does it work on another? I trained one BERT-base model per source domain (seed 42, same fixed settings as before) and scored it once on the test set of every other domain. Nothing was tuned on the target domains. The main score is ROC AUC, because the share of deceptive texts is very different between domains. Code: `run_transfer.sh`, `src/transfer.py`. Results: `results_transfer/` (F1 at 0.5 is in `transfer.md`).
+
+Rows = training domain, columns = test domain. The diagonal (bold) is the normal in-domain test. 0.5 is chance.
+
+| Train on \ Test on | fake_news | job_scams | phishing | political_statements | product_reviews | sms | twitter_rumours |
+|---|---|---|---|---|---|---|---|
+| fake_news | **0.998** | 0.628 | 0.629 | 0.543 | 0.537 | 0.818 | 0.525 |
+| job_scams | 0.338 | **0.963** | 0.758 | 0.462 | 0.516 | 0.199 | 0.501 |
+| phishing | 0.314 | 0.562 | **0.999** | 0.451 | 0.562 | 0.888 | 0.459 |
+| political_statements | 0.772 | 0.531 | 0.427 | **0.664** | 0.532 | 0.177 | 0.512 |
+| product_reviews | 0.566 | 0.384 | 0.752 | 0.490 | **0.784** | 0.574 | 0.421 |
+| sms | 0.685 | 0.486 | 0.677 | 0.492 | 0.499 | **1.000** | 0.510 |
+| twitter_rumours | 0.375 | 0.636 | 0.664 | 0.500 | 0.382 | 0.504 | **0.931** |
+
+![transfer](results_transfer/transfer_auc.png)
+
+What the table shows:
+- **Transfer is weak.** Over the 42 off-diagonal pairs the mean AUC is 0.529 (median 0.514), close to chance.
+- **Only 5 of 42 pairs reach 0.70:** phishing to SMS 0.888, fake news to SMS 0.818, political statements to fake news 0.772, job scams to phishing 0.758, product reviews to phishing 0.752.
+- **9 pairs are below 0.45, and two are about 0.18 to 0.20** (political statements to SMS 0.177, job scams to SMS 0.199). Here the ranking is reversed: texts that look deceptive to the source model are more often genuine in the target. This may mean that the label has a different meaning in different domains (for example, spam in SMS may not mean the same as deception elsewhere), or that cues point in opposite directions. I did not test this.
+- **No identical text is shared** between a training domain and a different test domain, so copied texts do not inflate these numbers.
+
+Limits: one run per source domain (seed 42) and no confidence intervals. I measured whether a detector transfers, not which cues transfer. F1 at 0.5 is hard to compare here because the share of deceptive texts differs by domain, so AUC is the main score.
+
 ## Baseline: TF-IDF + logistic regression
 
 A simple model that counts words and word pairs, with no pre-trained language model. Settings were fixed before looking at results (C=4) and not tuned on test. One run per domain, no CI. Run with `python -m src.tfidf`.
@@ -145,6 +171,8 @@ These are hypotheses and were not verified.
 
 Tested on Google Colab (T4 GPU, Python 3.13).
 
+Library versions in the Colab session of the latest runs (cross-domain transfer): Python 3.13.16, torch 2.11.0+cu130, transformers 4.46.3, numpy 2.4.6, scikit-learn 1.6.1. `transformers`, `accelerate` and `huggingface_hub` are pinned in `requirements.txt`; the others come from Colab. Every result file records its own torch and transformers versions.
+
 ```
 pip install -r requirements.txt
 # data_manifest.json is in the repo. Do not re-pin it, so you use the same dataset version.
@@ -185,8 +213,9 @@ tests/          unit tests (pytest)
 results*/       one JSON per run (metrics, settings, library versions, saved scores)
 results_pred/   final runs with saved predictions, plus analysis.md
 results_tfidf/  TF-IDF baseline results
+results_transfer/  cross-domain transfer results (transfer.md, transfer_auc.png, one JSON per source domain)
 data_manifest.json   pinned dataset version and file hashes
 run_all.sh      runs all 7 domains
 make_report.sh  rebuilds all tables and the figure from saved runs
-run_transfer.sh optional cross-domain experiment (code only, no results reported)
+run_transfer.sh cross-domain experiment; results in results_transfer/
 ```
