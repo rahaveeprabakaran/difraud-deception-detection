@@ -1,0 +1,66 @@
+{
+  "validation": {
+    "f1": 0.7394957983193278,
+    "precision": 0.7457627118644068,
+    "recall": 0.7333333333333333,
+    "accuracy": 0.9783065080475857,
+    "tn": 1354,
+    "fp": 15,
+    "fn": 16,
+    "tp": 44
+  },
+  "test": {
+    "f1": 0.6923076923076923,
+    "precision": 0.8181818181818182,
+    "recall": 0.6,
+    "accuracy": 0.9776223776223776,
+    "tn": 1362,
+    "fp": 8,
+    "fn": 24,
+    "tp": 36
+  },
+  "meta": {
+    "domain": "job_scams",
+    "model": "google-bert/bert-base-uncased",
+    "seed": 42,
+    "balance": false,
+    "epochs": 5,
+    "lr": 2e-05,
+    "max_len": 512,
+    "batch_size": 32,
+    "frac_truncated": {
+      "train": 0.056225953130465196,
+      "validation": 0.052484254723582924,
+      "test": 0.055944055944055944
+    },
+    "data_report": {
+      "train": {
+        "n": 11436,
+        "deceptive": 479,
+        "genuine": 10957,
+        "dup_within": 0
+      },
+      "validation": {
+        "n": 1429,
+        "deceptive": 60,
+        "genuine": 1369,
+        "dup_within": 0
+      },
+      "test": {
+        "n": 1430,
+        "deceptive": 60,
+        "genuine": 1370,
+        "dup_within": 0
+      },
+      "leak_train_test": 0,
+      "leak_train_val": 0,
+      "leak_val_test": 0
+    },
+    "dataset_revision": "aaaf94b336c563a14806bb4f3f58727bed9ed8d4",
+    "model_commit": "86b5e0934494bd15c9632b12f734a8a67f723594",
+    "torch": "2.11.0+cu130",
+    "transformers": "4.46.3",
+    "cuda": true,
+    "python": "3.13.16"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "validation": {
+    "f1": 0.7083333333333334,
+    "precision": 0.7192307692307692,
+    "recall": 0.6977611940298507,
+    "accuracy": 0.6304,
+    "tn": 227,
+    "fp": 219,
+    "fn": 243,
+    "tp": 561
+  },
+  "test": {
+    "f1": 0.7167919799498746,
+    "precision": 0.7231352718078382,
+    "recall": 0.7105590062111802,
+    "accuracy": 0.6384,
+    "tn": 226,
+    "fp": 219,
+    "fn": 233,
+    "tp": 572
+  },
+  "meta": {
+    "domain": "political_statements",
+    "model": "google-bert/bert-base-uncased",
+    "seed": 42,
+    "balance": false,
+    "epochs": 3,
+    "lr": 5e-05,
+    "max_len": 256,
+    "batch_size": 32,
+    "frac_truncated": {
+      "train": 0.00030009002700810244,
+      "validation": 0.0008,
+      "test": 0.0008
+    },
+    "data_report": {
+      "train": {
+        "n": 9997,
+        "deceptive": 6433,
+        "genuine": 3564,
+        "dup_within": 0
+      },
+      "validation": {
+        "n": 1250,
+        "deceptive": 804,
+        "genuine": 446,
+        "dup_within": 0
+      },
+      "test": {
+        "n": 1250,
+        "deceptive": 805,
+        "genuine": 445,
+        "dup_within": 0
+      },
+      "leak_train_test": 0,
+      "leak_train_val": 0,
+      "leak_val_test": 0
+    },
+    "dataset_revision": "aaaf94b336c563a14806bb4f3f58727bed9ed8d4",
+    "model_commit": "86b5e0934494bd15c9632b12f734a8a67f723594",
+    "torch": "2.11.0+cu130",
+    "transformers": "4.46.3",
+    "cuda": true,
+    "python": "3.13.16"
+  }
+}

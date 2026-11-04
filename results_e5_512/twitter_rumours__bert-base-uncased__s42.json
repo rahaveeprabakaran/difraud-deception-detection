@@ -1,0 +1,66 @@
+{
+  "validation": {
+    "f1": 0.8309178743961353,
+    "precision": 0.7926267281105991,
+    "recall": 0.8730964467005076,
+    "accuracy": 0.8791018998272885,
+    "tn": 337,
+    "fp": 45,
+    "fn": 25,
+    "tp": 172
+  },
+  "test": {
+    "f1": 0.7865707434052758,
+    "precision": 0.7454545454545455,
+    "recall": 0.8324873096446701,
+    "accuracy": 0.846286701208981,
+    "tn": 326,
+    "fp": 56,
+    "fn": 33,
+    "tp": 164
+  },
+  "meta": {
+    "domain": "twitter_rumours",
+    "model": "google-bert/bert-base-uncased",
+    "seed": 42,
+    "balance": false,
+    "epochs": 5,
+    "lr": 2e-05,
+    "max_len": 512,
+    "batch_size": 32,
+    "frac_truncated": {
+      "train": 0.0,
+      "validation": 0.0,
+      "test": 0.0
+    },
+    "data_report": {
+      "train": {
+        "n": 4631,
+        "deceptive": 1575,
+        "genuine": 3056,
+        "dup_within": 0
+      },
+      "validation": {
+        "n": 579,
+        "deceptive": 197,
+        "genuine": 382,
+        "dup_within": 0
+      },
+      "test": {
+        "n": 579,
+        "deceptive": 197,
+        "genuine": 382,
+        "dup_within": 0
+      },
+      "leak_train_test": 0,
+      "leak_train_val": 0,
+      "leak_val_test": 0
+    },
+    "dataset_revision": "aaaf94b336c563a14806bb4f3f58727bed9ed8d4",
+    "model_commit": "86b5e0934494bd15c9632b12f734a8a67f723594",
+    "torch": "2.11.0+cu130",
+    "transformers": "4.46.3",
+    "cuda": true,
+    "python": "3.13.16"
+  }
+}

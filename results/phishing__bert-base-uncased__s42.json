@@ -1,0 +1,66 @@
+{
+  "validation": {
+    "f1": 0.9825726141078838,
+    "precision": 0.9899665551839465,
+    "recall": 0.9752883031301482,
+    "accuracy": 0.9862475442043221,
+    "tn": 914,
+    "fp": 6,
+    "fn": 15,
+    "tp": 592
+  },
+  "test": {
+    "f1": 0.9884488448844885,
+    "precision": 0.9917218543046358,
+    "recall": 0.9851973684210527,
+    "accuracy": 0.9908376963350786,
+    "tn": 915,
+    "fp": 5,
+    "fn": 9,
+    "tp": 599
+  },
+  "meta": {
+    "domain": "phishing",
+    "model": "google-bert/bert-base-uncased",
+    "seed": 42,
+    "balance": false,
+    "epochs": 3,
+    "lr": 2e-05,
+    "max_len": 256,
+    "batch_size": 32,
+    "frac_truncated": {
+      "train": 0.48538921175411315,
+      "validation": 0.49836280288146695,
+      "test": 0.4653141361256545
+    },
+    "data_report": {
+      "train": {
+        "n": 12217,
+        "deceptive": 4859,
+        "genuine": 7358,
+        "dup_within": 79
+      },
+      "validation": {
+        "n": 1527,
+        "deceptive": 607,
+        "genuine": 920,
+        "dup_within": 0
+      },
+      "test": {
+        "n": 1528,
+        "deceptive": 608,
+        "genuine": 920,
+        "dup_within": 0
+      },
+      "leak_train_test": 14,
+      "leak_train_val": 16,
+      "leak_val_test": 4
+    },
+    "dataset_revision": "aaaf94b336c563a14806bb4f3f58727bed9ed8d4",
+    "model_commit": "86b5e0934494bd15c9632b12f734a8a67f723594",
+    "torch": "2.11.0+cu130",
+    "transformers": "4.46.3",
+    "cuda": true,
+    "python": "3.13.16"
+  }
+}

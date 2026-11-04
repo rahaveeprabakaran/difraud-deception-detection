@@ -1,0 +1,66 @@
+{
+  "validation": {
+    "f1": 0.7610619469026548,
+    "precision": 0.8113207547169812,
+    "recall": 0.7166666666666667,
+    "accuracy": 0.9811056682995102,
+    "tn": 1359,
+    "fp": 10,
+    "fn": 17,
+    "tp": 43
+  },
+  "test": {
+    "f1": 0.6226415094339622,
+    "precision": 0.717391304347826,
+    "recall": 0.55,
+    "accuracy": 0.972027972027972,
+    "tn": 1357,
+    "fp": 13,
+    "fn": 27,
+    "tp": 33
+  },
+  "meta": {
+    "domain": "job_scams",
+    "model": "FacebookAI/roberta-base",
+    "seed": 2,
+    "balance": false,
+    "epochs": 3,
+    "lr": 2e-05,
+    "max_len": 256,
+    "batch_size": 32,
+    "frac_truncated": {
+      "train": 0.33726827562084644,
+      "validation": 0.3261021693491952,
+      "test": 0.34195804195804197
+    },
+    "data_report": {
+      "train": {
+        "n": 11436,
+        "deceptive": 479,
+        "genuine": 10957,
+        "dup_within": 0
+      },
+      "validation": {
+        "n": 1429,
+        "deceptive": 60,
+        "genuine": 1369,
+        "dup_within": 0
+      },
+      "test": {
+        "n": 1430,
+        "deceptive": 60,
+        "genuine": 1370,
+        "dup_within": 0
+      },
+      "leak_train_test": 0,
+      "leak_train_val": 0,
+      "leak_val_test": 0
+    },
+    "dataset_revision": "aaaf94b336c563a14806bb4f3f58727bed9ed8d4",
+    "model_commit": "e2da8e2f811d1448a5b465c236feacd80ffbac7b",
+    "torch": "2.11.0+cu130",
+    "transformers": "4.46.3",
+    "cuda": true,
+    "python": "3.13.16"
+  }
+}

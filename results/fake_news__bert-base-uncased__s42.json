@@ -1,0 +1,66 @@
+{
+  "validation": {
+    "f1": 0.984650369528141,
+    "precision": 0.9897142857142858,
+    "recall": 0.9796380090497737,
+    "accuracy": 0.9868035190615836,
+    "tn": 1153,
+    "fp": 9,
+    "fn": 18,
+    "tp": 866
+  },
+  "test": {
+    "f1": 0.981217985202049,
+    "precision": 0.9862700228832952,
+    "recall": 0.9762174405436014,
+    "accuracy": 0.9838709677419355,
+    "tn": 1151,
+    "fp": 12,
+    "fn": 21,
+    "tp": 862
+  },
+  "meta": {
+    "domain": "fake_news",
+    "model": "google-bert/bert-base-uncased",
+    "seed": 42,
+    "balance": false,
+    "epochs": 3,
+    "lr": 2e-05,
+    "max_len": 256,
+    "batch_size": 32,
+    "frac_truncated": {
+      "train": 0.8056098753361036,
+      "validation": 0.8137829912023461,
+      "test": 0.793743890518084
+    },
+    "data_report": {
+      "train": {
+        "n": 16364,
+        "deceptive": 7065,
+        "genuine": 9299,
+        "dup_within": 0
+      },
+      "validation": {
+        "n": 2046,
+        "deceptive": 884,
+        "genuine": 1162,
+        "dup_within": 0
+      },
+      "test": {
+        "n": 2046,
+        "deceptive": 883,
+        "genuine": 1163,
+        "dup_within": 0
+      },
+      "leak_train_test": 0,
+      "leak_train_val": 0,
+      "leak_val_test": 0
+    },
+    "dataset_revision": "aaaf94b336c563a14806bb4f3f58727bed9ed8d4",
+    "model_commit": "86b5e0934494bd15c9632b12f734a8a67f723594",
+    "torch": "2.11.0+cu130",
+    "transformers": "4.46.3",
+    "cuda": true,
+    "python": "3.13.16"
+  }
+}
