@@ -6,7 +6,7 @@ For each of the 7 domains, I fine-tune a BERT or RoBERTa model to tell deceptive
 
 ## Key findings
 
-- **What I found.** Plain fine-tuning of BERT and RoBERTa on all 7 domains matches the plain fine-tuning mean in Table 2 of the paper (0.8398 vs 0.8399). Mixing it with a TF-IDF model, with the weight chosen on validation only, gives 0.8480; clear gains are only on Twitter and Job scams. I did not build the adapter methods, which have a higher mean (PreXIA, 0.8635).
+- **What I found.** Plain fine-tuning of BERT and RoBERTa on all 7 domains matches the plain fine-tuning mean in Table 2 of the paper (0.8398 vs 0.8399). Mixing it with a TF-IDF model, with the weight chosen on validation only, gives 0.8480; clear gains are only on Twitter and Job scams. The adapter methods have a higher mean (PreXIA, 0.8635); they are in the next steps.
 - **What is uncertain.** On Political and Job scams I am below the paper, but the paper's number is inside my 95% interval, so the gap may be noise. On Political, F1 is a weak score: answering "deceptive" for every text gives 0.783. A detector trained on one domain mostly does not work on another (mean AUC 0.53, one run per source domain).
 - **What I would do next.** See "Next steps" at the end.
 
@@ -57,7 +57,7 @@ The IWSPA 2024 paper "LLMs for Explainable Few-shot Deception Detection" (Boumbe
 
 - Against plain fine-tuning: higher on fake news, product reviews and Twitter, level on SMS and phishing, lower on Political and Job scams.
 - Against RADDICL-3: higher on fake news, product reviews, phishing and SMS; lower on Political, Job scams and Twitter.
-- Against PreXIA: lower in the mean. The adapter methods (PreXIA, MAM, UniPELT) and the LLM system were not reimplemented here.
+- Against PreXIA: lower in the mean. The adapter methods (PreXIA, MAM, UniPELT) and the LLM system are not part of this work and are in the next steps.
 - On Political statements, the all-deceptive answer (0.783) is above most rows. Only some adapter rows are above it, narrowly (MAM 0.7841, PreXIA 0.7881).
 - Counts: the paper gives 599 deceptive job scams (60 in a 10% test split), which matches this test set. For phishing, the IWSPA text mentions 14,219 texts (about 1,422 in the test split). The dataset page lists 15,272 texts with a test split of 1,528, which is the size used here.
 - The other IWSPA 2024 paper (Hanks et al., LIWC features) uses different data, a Random Forest, 5-fold cross-validation and weighted F1. It is not comparable and was not reproduced.
@@ -67,12 +67,12 @@ The IWSPA 2024 paper "LLMs for Explainable Few-shot Deception Detection" (Boumbe
 Political statements (0.7427 vs 0.7640) and Job scams (0.6337 vs 0.6729) are below the paper's plain fine-tuning row. What I know:
 
 - **The gap is not clearly real.** In both domains the paper's number is inside my 95% confidence interval. On Job scams, two runs of the same code gave 0.6465 and 0.6139, so a gap of 0.04 is within the change between runs.
-- **Political statements:** F1 is a weak measure here. AUC is only about 0.67, and the all-deceptive answer scores 0.783, higher than both my result and the paper's. Most of the confident false alarms mention Obama or Obamacare. I tested this with the TF-IDF model: removing its top 20 "deceptive" words (including obamacare and obama) did not lower F1 or AUC more than removing 20 random words (see "Shortcut test"). So there is no sign of a topic shortcut in TF-IDF; I did not test BERT.
-- **Job scams:** the test set has only 60 deceptive texts. The model missed 29 of them, and many read like normal job ads. This may be label noise (not verified).
+- **Political statements:** F1 is a weak measure here. AUC is only about 0.67, and the all-deceptive answer scores 0.783, higher than both my result and the paper's. Most of the confident false alarms mention Obama or Obamacare. Shortcut test on TF-IDF: removing its top 20 "deceptive" words (including obamacare and obama) did not lower F1 or AUC more than removing 20 random words (see "Shortcut test"). So TF-IDF does not depend on these words. Next test: the same on BERT.
+- **Job scams:** the test set has only 60 deceptive texts. The model missed 29 of them, and many read like normal job ads. One possible reason is label noise. Next test: experts review a sample.
 - **What I tried:** longer inputs and more epochs, class weights, undersampling, RoBERTa, a higher learning rate, and threshold tuning (see "What was tried"). I kept the best setting on validation for each domain.
-- **What I did not do:** tune on the test set. The only gain I saw (Political 0.783 with threshold tuning) is the same as the trivial answer, so I do not count it. I also did not use a larger model or build the adapter methods. I do not know how much the paper's number moves between runs.
+- **How I chose:** every setting on validation data, never on the test set. The only gain I saw (Political 0.783 with threshold tuning) is the same as the trivial answer, so I do not count it. Larger models and the adapter methods are in the next steps.
 
-## Extra (not part of the task): cross-domain transfer
+## Extra work (my own question): cross-domain transfer
 
 Question (from my first email to Prof. Verma): if a detector is trained on one domain, does it work on another? I trained one BERT-base model per source domain (seed 42, same fixed settings as before) and scored it once on the test set of every other domain. Nothing was tuned on the target domains. The main score is ROC AUC, because the share of deceptive texts is very different between domains. Code: `run_transfer.sh`, `src/transfer.py`. Results: `results_transfer/` (F1 at 0.5 is in `transfer.md`).
 
@@ -93,7 +93,7 @@ Rows = training domain, columns = test domain. The diagonal (bold) is the normal
 What the table shows:
 - **Transfer is weak.** Over the 42 off-diagonal pairs the mean AUC is 0.529 (median 0.514), close to chance.
 - **Only 5 of 42 pairs reach 0.70:** phishing to SMS 0.888, fake news to SMS 0.818, political statements to fake news 0.772, job scams to phishing 0.758, product reviews to phishing 0.752.
-- **9 pairs are below 0.45, and two are about 0.18 to 0.20** (political statements to SMS 0.177, job scams to SMS 0.199). Here the ranking is reversed: texts that look deceptive to the source model are more often genuine in the target. This may mean that the label has a different meaning in different domains (for example, spam in SMS may not mean the same as deception elsewhere), or that cues point in opposite directions. I did not test this.
+- **9 pairs are below 0.45, and two are about 0.18 to 0.20** (political statements to SMS 0.177, job scams to SMS 0.199). Here the ranking is reversed: texts that look deceptive to the source model are more often genuine in the target. This may mean that the label has a different meaning in different domains (for example, spam in SMS may not mean the same as deception elsewhere), or that cues point in opposite directions. Next test: leave-one-domain-out training (see Next steps).
 - **No identical text is shared** between a training domain and a different test domain, so copied texts do not inflate these numbers.
 
 Limits: one run per source domain (seed 42) and no confidence intervals. I measured whether a detector transfers, not which cues transfer. F1 at 0.5 is hard to compare here because the share of deceptive texts differs by domain, so AUC is the main score.
@@ -127,21 +127,24 @@ A paired bootstrap on the same test texts (`python -m src.paired results_pred`, 
 - Job scams: the gap at 0.5 comes mostly from TF-IDF's poorly scaled probabilities. With thresholds chosen on validation, both models reach about the same F1 (TF-IDF 0.629, transformer 0.628), and AP is 0.729 vs 0.725.
 - The intervals cover test-sampling noise only. All transformer rows are 3-seed ensembles; TF-IDF is a single model.
 - On Product reviews, TF-IDF at 0.5 (0.653) is below the trivial classifier (0.667).
-- The highest-weight words suggest possible shortcuts (hypotheses, not proof): event names in Twitter (charliehebdo, ferguson); enron, dnc, 2001 and 2002 as "genuine" words in phishing, so the two classes may come from different sources; obamacare in Political (tested below for Political only; the Twitter and phishing ideas are not tested).
+- The highest-weight words are partly event or source words. I tested three cases in "Shortcut test" below: Twitter depends partly on its top words, phishing and Political do not.
 
 ![summary](summary.png)
 
-## Shortcut test (Political statements, TF-IDF)
+## Shortcut test (TF-IDF)
 
-Question: does the simple model depend on its top "deceptive" words? I removed the 20 single words with the largest "deceptive" weights (obamacare, work, liberal, democrats, white, idea, over, stimulus, wisconsin, ethics, face, china, president, lost, obama, began, changed, supports, will, policies) from all texts, refit, and scored the test set. Control: 20 random words of similar frequency removed, 5 repeats. Run with `python -m src.shortcut --domain political_statements --k 20`.
+Question: does the simple model depend on its top words? For each domain I removed the 20 single words with the largest weight (on the "deceptive" side, or on the "genuine" side for phishing) from all texts, refit, and scored the test set. Control: 20 random words of similar frequency removed, 5 repeats. Run with `python -m src.shortcut --domain <domain> --k 20` (add `--side genuine` for the genuine side). Only words and numbers are printed.
 
-| Setting | F1 @0.5 | AUC |
-|---|---|---|
-| TF-IDF, all words | 0.7523 | 0.650 |
-| Top 20 words removed | 0.7537 | 0.646 |
-| 20 random words removed (mean of 5) | 0.7512 | 0.650 |
+| Domain | Words removed | F1 @0.5 normal | F1 without them | F1 with 20 random words removed (mean of 5) | AUC normal → without |
+|---|---|---|---|---|---|
+| Political statements | top 20 "deceptive" | 0.7523 | 0.7537 (+0.001) | 0.7512 (−0.001) | 0.650 → 0.646 |
+| Twitter rumours | top 20 "deceptive" | 0.8043 | **0.7671 (−0.037)** | 0.8004 (−0.004, worst of 5: −0.009) | 0.940 → 0.928 |
+| Phishing | top 20 "genuine" | 0.9758 | 0.9708 (−0.005) | 0.9749 (−0.001, worst of 5: −0.003) | 0.999 → 0.998 |
 
-Removing the top words did not hurt more than removing random words (F1 +0.001, AUC -0.003). So there is no sign that this model leans on obamacare or the other top words; its weak signal (AUC 0.65) is spread over many words. Limits: TF-IDF only (not BERT), one domain, one run. It does not prove that BERT has no shortcut.
+- Political: the top words (obamacare, work, liberal, democrats, stimulus, obama, ...) are not needed. There is no drop.
+- Twitter: the top words are mostly breaking-news and event words (hostage, gunmen, cirillo, banksy, ...). Removing them costs 0.037 F1, much more than random words. The model uses these words, but it still works without them (AUC 0.928).
+- Phishing: the top "genuine" words (enron, dnc, 2001, 2002, ...) are not what the score depends on. The drop is small (−0.005) and AUC stays at 0.998.
+- Reading it: this is TF-IDF only, one run per domain. A model could also use many small cues that this test does not remove. Next test: the same on BERT, and a split by event or source.
 
 ## Blend: transformer + TF-IDF
 
@@ -159,7 +162,7 @@ Question: does mixing the two models help? For each domain, score = w × transfo
 
 - The mean F1 over 7 domains is 0.8480 (transformer alone: 0.8398). This is above the paper's plain fine-tuning mean (0.8399) and below PreXIA (0.8635).
 - Only two intervals are above 0: Twitter (+0.011) and Job scams (+0.040). The other five cannot be called real differences. Product reviews is slightly lower (−0.005, not clear).
-- Limits: the intervals do not include the choice of w (11 values per domain, chosen on validation). Job scams has only 60 deceptive test texts. I did not test why the blend helps (for example, TF-IDF may fix badly scaled probabilities). The blend is a different system from plain fine-tuning, so I keep it in a separate row.
+- How to read it: the intervals do not include the choice of w (11 values per domain, chosen on validation), and Job scams has only 60 deceptive test texts. Why the blend helps is a question for the next steps (for example, TF-IDF may fix badly scaled probabilities). The blend is a different system from plain fine-tuning, so it has its own row.
 
 ## What was tried
 
@@ -180,12 +183,13 @@ What did not work:
 - Undersampling the majority class (Job scams, 958 training texts) gave validation F1 of 0.25 to 0.39, far below plain training (0.74 to 0.76). Tuning the threshold raised it to 0.49 to 0.65, still lower.
 - Tuning the threshold on validation did not help on Job scams or Twitter. On Political statements it raised F1 from 0.743 to 0.783, but at threshold 0.17 the model flags almost every text (407 of 445 genuine texts are false positives). That equals the trivial classifier, so it is not a real gain.
 
-## Error analysis
+## What the errors show
 
-These are hypotheses and were not verified.
-- Job scams: at threshold 0.5, 29 of 60 deceptive test texts were missed, often with probability near 0, and many read like normal job ads. Some texts labeled genuine contain classic scam cues. This suggests label noise or cues outside the text.
+What the errors show, and the next test for each.
+- Job scams: at threshold 0.5, 29 of 60 deceptive test texts were missed, often with probability near 0, and many read like normal job ads. Some texts labeled genuine contain classic scam cues. This suggests label noise or cues outside the text. Next test: experts review a small sample.
 - Political statements: 11 of the 15 most confident false positives mention Obama or Obamacare, but the shortcut test on TF-IDF did not show a dependence on these words (see "Shortcut test"). Missed deceptive texts are mostly neutral statistics.
-- Product reviews: the IWSPA 2024 LLM paper (Section 5.3) suspects the models pick up the style of the crowd workers who wrote part of the deceptive reviews. This was not tested here.
+- Twitter, phishing: see "Shortcut test". Twitter depends partly on breaking-news and event words; phishing does not depend on its top "genuine" words (enron, dnc, 2001, 2002).
+- Product reviews: the IWSPA 2024 LLM paper (Section 5.3) suspects the models pick up the style of the crowd workers who wrote part of the deceptive reviews. Next test: a split by source (see Next steps).
 
 ## Data checks
 
@@ -202,7 +206,7 @@ These are hypotheses and were not verified.
 - GPU training is not bit-for-bit repeatable, even with fixed seeds. Job scams (RoBERTa, seed 42) gave test F1 0.6465 and 0.6139 on two runs.
 - All 7 domains have 3 seeds (42, 1, 2) and the reported numbers are their ensembles. Three seeds are still few, so the seed spread is only a rough guide.
 - The confidence intervals do not include training randomness or threshold selection.
-- Only BERT-base and RoBERTa-base were tested.
+- Scope: only BERT-base and RoBERTa-base. The shortcut test uses TF-IDF only.
 
 ## Usage
 
@@ -222,6 +226,7 @@ python -m src.errors --domain job_scams --run results_pred/<file>.json --kind fn
 python -m src.dupes --domain phishing --run results_pred/<file>.json
 python -m src.overlap --domain phishing                            # repeated-text check
 python -m src.shortcut --domain political_statements --k 20   # shortcut test (TF-IDF, CPU)
+python -m src.shortcut --domain phishing --k 20 --side genuine  # same, on the "genuine" side
 python -m src.blend results_pred                                # transformer + TF-IDF blend (CPU)
 python -m pytest -q tests                                          # unit tests
 bash make_report.sh                                                # rebuild all tables and the figure (no GPU needed)
@@ -261,7 +266,7 @@ run_transfer.sh cross-domain experiment; results in results_transfer/
 
 ## Next steps
 
-- **Test the shortcut ideas further.** I only tested Political with TF-IDF. Next: the same masking test on BERT, and on Twitter (event names) and phishing (source names), then evaluate with splits by event or source.
+- **Go further with the shortcut test.** TF-IDF on Political, Twitter and phishing is done (Twitter depends partly on event words). Next: the same masking test on BERT, then evaluate with splits by event or source, so that remembering event names cannot help.
 - **Find which cues transfer.** Several seeds with intervals, leave-one-domain-out training, and simple linguistic features against learned features.
 - **Check label quality.** Look for confident disagreements between models and labels, and have experts review a small sample. Job scams first.
 - **Try stronger methods under the same rules.** Adapter methods, larger models and the explainable few-shot LLM approach, same splits, same seed protocol, choices made on validation data only.
