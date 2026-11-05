@@ -1,6 +1,7 @@
 """Shortcut test: does the simple TF-IDF model lose accuracy when its top "deceptive" words are removed?
 
 Usage: python -m src.shortcut --domain political_statements --k 20
+       python -m src.shortcut --domain phishing --k 20 --side genuine   (words that point to "genuine")
 
 Steps (CPU only, takes about a minute):
   1. Fit TF-IDF + logistic regression (same settings as src/tfidf.py) and score the test set.
@@ -40,11 +41,14 @@ def fit_score(xtr, ytr, xte, yte):
     return f1, roc_auc_score(yte, p), vec, clf, A
 
 
-def top_unigrams(vec, clf, k):
+def top_unigrams(vec, clf, k, side="deceptive"):
+    """The k single words with the largest weight toward 'deceptive' (or toward 'genuine')."""
     names = np.array(vec.get_feature_names_out())
     uni = np.array([" " not in n for n in names])
     idx = np.where(uni)[0]
-    order = idx[np.argsort(clf.coef_[0][idx])[::-1]]
+    order = idx[np.argsort(clf.coef_[0][idx])]
+    if side == "deceptive":
+        order = order[::-1]
     return names[order[:k]].tolist()
 
 
@@ -68,15 +72,16 @@ def main():
     ap.add_argument("--domain", required=True, choices=DOMAINS)
     ap.add_argument("--k", type=int, default=20)
     ap.add_argument("--repeats", type=int, default=5)
+    ap.add_argument("--side", choices=["deceptive", "genuine"], default="deceptive")
     a = ap.parse_args()
     m = load_manifest()
     xtr, ytr = read_jsonl(get_path(a.domain, "train", m))
     xte, yte = read_jsonl(get_path(a.domain, "test", m))
     f1, auc, vec, clf, A = fit_score(xtr, ytr, xte, yte)
-    words = top_unigrams(vec, clf, a.k)
+    words = top_unigrams(vec, clf, a.k, a.side)
     print(f"{a.domain}: train {len(xtr)}, test {len(xte)}")
     print(f"Baseline: F1@0.5 {f1:.4f}, AUC {auc:.3f}")
-    print(f"Top {a.k} deceptive words removed: {', '.join(words)}")
+    print(f"Top {a.k} {a.side} words removed: {', '.join(words)}")
     f1r, aucr, *_ = fit_score(strip_words(xtr, words), ytr, strip_words(xte, words), yte)
     print(f"Without them: F1@0.5 {f1r:.4f} ({f1r - f1:+.4f}), AUC {aucr:.3f} ({aucr - auc:+.3f})")
     rng = np.random.default_rng(0)
