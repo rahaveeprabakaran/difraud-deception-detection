@@ -37,3 +37,11 @@ def test_matched_random_words_exclude_removed_and_have_similar_frequency():
     ctrl = matched_random_words(vec, A, ["alpha"], 3, rng)
     assert len(set(ctrl)) == 3
     assert "alpha" not in ctrl and len(ctrl) == 3 and all(" " not in w for w in ctrl)
+
+
+def test_genuine_side_returns_the_other_end():
+    x, y = _toy()
+    xtr, ytr, xte, yte = x[:200], y[:200], x[200:], y[200:]
+    _, _, vec, clf, _ = fit_score(xtr, ytr, xte, yte)
+    assert "shortcut" not in top_unigrams(vec, clf, 3, side="genuine")
+    assert top_unigrams(vec, clf, 1, side="deceptive") == ["shortcut"]
