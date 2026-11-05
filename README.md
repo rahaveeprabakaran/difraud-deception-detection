@@ -6,7 +6,7 @@ For each of the 7 domains, I fine-tune a BERT or RoBERTa model to tell deceptive
 
 ## Key findings
 
-- **What I found.** Plain fine-tuning of BERT and RoBERTa on all 7 domains matches the plain fine-tuning mean in Table 2 of the paper (0.8398 vs 0.8399). I did not build the adapter methods, which have a higher mean (PreXIA, 0.8635).
+- **What I found.** Plain fine-tuning of BERT and RoBERTa on all 7 domains matches the plain fine-tuning mean in Table 2 of the paper (0.8398 vs 0.8399). Mixing it with a TF-IDF model, with the weight chosen on validation only, gives 0.8480; clear gains are only on Twitter and Job scams. I did not build the adapter methods, which have a higher mean (PreXIA, 0.8635).
 - **What is uncertain.** On Political and Job scams I am below the paper, but the paper's number is inside my 95% interval, so the gap may be noise. On Political, F1 is a weak score: answering "deceptive" for every text gives 0.783. A detector trained on one domain mostly does not work on another (mean AUC 0.53, one run per source domain).
 - **What I would do next.** See "Next steps" at the end.
 
@@ -50,6 +50,7 @@ The IWSPA 2024 paper "LLMs for Explainable Few-shot Deception Detection" (Boumbe
 | Method | Pols | News | Jobs | Prod | Phish | Twitter | SMS | Mean |
 |---|---|---|---|---|---|---|---|---|
 | This work (BERT / RoBERTa fine-tuned) | 0.7427 | 0.9852 | 0.6337 | 0.7197 | 0.9893 | 0.8199 | 0.9883 | 0.8398 |
+| This work + TF-IDF blend (weight chosen on validation) | 0.7520 | 0.9864 | 0.6737 | 0.7152 | 0.9901 | 0.8305 | 0.9883 | 0.8480 |
 | Paper: fine-tuned bert-base-uncased | 0.7640 | 0.9773 | 0.6729 | 0.6968 | 0.9859 | 0.7944 | 0.9883 | 0.8399 |
 | Paper: RADDICL-3 (4-shot LLM) | 0.7786 | 0.8867 | 0.6606 | 0.4058 | 0.9769 | 0.8511 | 0.7475 | 0.7582 |
 | Paper: PreXIA + BERT (adapter) | 0.7881 | 0.9881 | 0.7350 | 0.7206 | 0.9896 | 0.8511 | 0.9723 | 0.8635 |
@@ -142,6 +143,24 @@ Question: does the simple model depend on its top "deceptive" words? I removed t
 
 Removing the top words did not hurt more than removing random words (F1 +0.001, AUC -0.003). So there is no sign that this model leans on obamacare or the other top words; its weak signal (AUC 0.65) is spread over many words. Limits: TF-IDF only (not BERT), one domain, one run. It does not prove that BERT has no shortcut.
 
+## Blend: transformer + TF-IDF
+
+Question: does mixing the two models help? For each domain, score = w × transformer + (1 − w) × TF-IDF, where w is one of 0, 0.1, ..., 1. I chose w on validation F1 at threshold 0.5 only (ties go to the larger w), then scored the test set once. Transformer = the 3-seed ensemble. Run with `python -m src.blend results_pred` (CPU, about 3 minutes); output in `results_pred/blend.md`. The 95% interval is a paired bootstrap of F1(blend) − F1(transformer).
+
+| Domain | Weight on transformer | Test F1 transformer | Test F1 blend | Difference | 95% CI |
+|---|---|---|---|---|---|
+| SMS | 0.8 | 0.9883 | 0.9883 | +0.000 | [+0.000, +0.000] |
+| Phishing | 0.7 | 0.9893 | 0.9901 | +0.001 | [-0.002, +0.004] |
+| Fake news | 0.5 | 0.9852 | 0.9864 | +0.001 | [-0.002, +0.004] |
+| Product reviews | 0.6 | 0.7197 | 0.7152 | -0.005 | [-0.014, +0.005] |
+| Political statements | 0.5 | 0.7427 | 0.7520 | +0.009 | [-0.006, +0.023] |
+| Twitter rumours | 0.8 | 0.8199 | 0.8305 | +0.011 | [+0.001, +0.022] |
+| Job scams | 0.7 | 0.6337 | 0.6737 | +0.040 | [+0.012, +0.076] |
+
+- The mean F1 over 7 domains is 0.8480 (transformer alone: 0.8398). This is above the paper's plain fine-tuning mean (0.8399) and below PreXIA (0.8635).
+- Only two intervals are above 0: Twitter (+0.011) and Job scams (+0.040). The other five cannot be called real differences. Product reviews is slightly lower (−0.005, not clear).
+- Limits: the intervals do not include the choice of w (11 values per domain, chosen on validation). Job scams has only 60 deceptive test texts. I did not test why the blend helps (for example, TF-IDF may fix badly scaled probabilities). The blend is a different system from plain fine-tuning, so I keep it in a separate row.
+
 ## What was tried
 
 Models were chosen on validation F1 only. The test split was scored once per run. Numbers are validation F1. In every run, the model after the last epoch (epoch 3) is the one that is scored. I did not pick a "best epoch", and no checkpoints are saved.
@@ -203,6 +222,7 @@ python -m src.errors --domain job_scams --run results_pred/<file>.json --kind fn
 python -m src.dupes --domain phishing --run results_pred/<file>.json
 python -m src.overlap --domain phishing                            # repeated-text check
 python -m src.shortcut --domain political_statements --k 20   # shortcut test (TF-IDF, CPU)
+python -m src.blend results_pred                                # transformer + TF-IDF blend (CPU)
 python -m pytest -q tests                                          # unit tests
 bash make_report.sh                                                # rebuild all tables and the figure (no GPU needed)
 ```
@@ -227,7 +247,7 @@ The dataset contains real scam and phishing texts, so it is treated as untrusted
 
 ```
 src/            data.py, train.py, analyze.py, threshold.py, errors.py, dupes.py, overlap.py,
-                aggregate.py, tfidf.py, paired.py, figure.py, transfer.py, shortcut.py
+                aggregate.py, tfidf.py, paired.py, figure.py, transfer.py, shortcut.py, blend.py
 tests/          unit tests (pytest)
 results*/       one JSON per run (metrics, settings, library versions, saved scores)
 results_pred/   final runs with saved predictions, plus analysis.md
