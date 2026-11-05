@@ -4,6 +4,12 @@ Code and results for detecting deceptive text on the DIFrauD dataset (Boumber, Q
 
 For each of the 7 domains, I fine-tune a BERT or RoBERTa model to tell deceptive texts from genuine ones. I report test F1 (deceptive = positive class) on the released 80/10/10 splits and compare it with the published results.
 
+## Key findings
+
+- **What I found.** Plain fine-tuning of BERT and RoBERTa on all 7 domains matches the plain fine-tuning mean in Table 2 of the paper (0.8398 vs 0.8399). I did not build the adapter methods, which have a higher mean (PreXIA, 0.8635).
+- **What is uncertain.** On Political and Job scams I am below the paper, but the paper's number is inside my 95% interval, so the gap may be noise. On Political, F1 is a weak score: answering "deceptive" for every text gives 0.783. A detector trained on one domain mostly does not work on another (mean AUC 0.53, one run per source domain).
+- **What I would do next.** See "Next steps" at the end.
+
 ## Dataset
 
 DIFrauD has about 96,000 English texts in 7 domains: SMS, phishing, fake news, product reviews, Twitter rumours, political statements and job scams. Each text has a binary label (1 = deceptive, 0 = genuine). The train, validation and test splits are the ones released with the dataset (seed 42).
@@ -21,18 +27,18 @@ DIFrauD has about 96,000 English texts in 7 domains: SMS, phishing, fake news, p
 
 | Domain | Model | Runs | Test F1 @0.5 [95% CI] | Trivial F1 | AUC | AP | Paper fine-tune |
 |---|---|---|---|---|---|---|---|
-| SMS | BERT-base | 1 | 0.9883 [0.974, 1.000] | 0.326 | 1.000 | 0.999 | 0.9883 |
-| Phishing | BERT-base | 1 | 0.9860 [0.979, 0.992] | 0.569 | 0.999 | 0.999 | 0.9859 |
-| Fake news | BERT-base | 1 | 0.9841 [0.978, 0.990] | 0.603 | 0.997 | 0.998 | 0.9773 |
-| Product reviews | BERT-base | 1 | 0.7192 [0.698, 0.740] | 0.667 | 0.784 | 0.795 | 0.6968 |
+| SMS | BERT-base | 3 (ensemble) | 0.9883 [0.974, 1.000] | 0.326 | 1.000 | 0.998 | 0.9883 |
+| Phishing | BERT-base | 3 (ensemble) | 0.9893 [0.983, 0.994] | 0.569 | 1.000 | 0.999 | 0.9859 |
+| Fake news | BERT-base | 3 (ensemble) | 0.9852 [0.979, 0.991] | 0.603 | 0.998 | 0.998 | 0.9773 |
+| Product reviews | BERT-base | 3 (ensemble) | 0.7197 [0.698, 0.740] | 0.667 | 0.787 | 0.797 | 0.6968 |
 | Twitter rumours | RoBERTa-base | 3 (ensemble) | 0.8199 [0.775, 0.860] | 0.508 | 0.939 | 0.898 | 0.7944 |
 | Political statements | BERT-base | 3 (ensemble) | 0.7427 [0.718, 0.765] | 0.783 | 0.673 | 0.773 | 0.7640 |
 | Job scams | RoBERTa-base | 3 (ensemble) | 0.6337 [0.511, 0.738] | 0.081 | 0.962 | 0.725 | 0.6729 |
 
-Single-run rows use seed 42. Ensemble rows average seeds 42, 1 and 2. The individual runs for these three domains average (mean ± std): Twitter 0.8205 ± 0.008, Political 0.7326 ± 0.013, Job scams 0.6329 ± 0.060. The full table is in `results_pred/analysis.md`.
+Every row is an ensemble: the average of the probabilities of 3 runs (seeds 42, 1 and 2). The individual runs average (mean ± std): SMS 0.9870 ± 0.002, Phishing 0.9868 ± 0.001, Fake news 0.9841 ± 0.001, Product reviews 0.7157 ± 0.006, Twitter 0.8205 ± 0.008, Political 0.7326 ± 0.013, Job scams 0.6329 ± 0.060. All seed runs are used, whatever their scores. The full table is in `results_pred/analysis.md`.
 
 Summary:
-- The mean F1 over the 7 domains is 0.8391, level with the paper's plain fine-tuning (0.8399).
+- The mean F1 over the 7 domains is 0.8398, level with the paper's plain fine-tuning (0.8399).
 - F1 is equal or higher than the paper's plain fine-tuning on 5 of 7 domains. On Twitter, Political and Job scams the paper's number is inside my confidence interval, so no difference can be claimed.
 - Political statements is close to chance for text-only models (AUC about 0.67). The trivial classifier scores 0.783, higher than my result and higher than the paper's 0.764, so F1 is a weak measure for this domain.
 - Job scams ranks well (AUC 0.96), but F1 is limited because the test set has only 60 deceptive texts and some are missed with high confidence (see Error analysis).
@@ -43,7 +49,7 @@ The IWSPA 2024 paper "LLMs for Explainable Few-shot Deception Detection" (Boumbe
 
 | Method | Pols | News | Jobs | Prod | Phish | Twitter | SMS | Mean |
 |---|---|---|---|---|---|---|---|---|
-| This work (BERT / RoBERTa fine-tuned) | 0.7427 | 0.9841 | 0.6337 | 0.7192 | 0.9860 | 0.8199 | 0.9883 | 0.8391 |
+| This work (BERT / RoBERTa fine-tuned) | 0.7427 | 0.9852 | 0.6337 | 0.7197 | 0.9893 | 0.8199 | 0.9883 | 0.8398 |
 | Paper: fine-tuned bert-base-uncased | 0.7640 | 0.9773 | 0.6729 | 0.6968 | 0.9859 | 0.7944 | 0.9883 | 0.8399 |
 | Paper: RADDICL-3 (4-shot LLM) | 0.7786 | 0.8867 | 0.6606 | 0.4058 | 0.9769 | 0.8511 | 0.7475 | 0.7582 |
 | Paper: PreXIA + BERT (adapter) | 0.7881 | 0.9881 | 0.7350 | 0.7206 | 0.9896 | 0.8511 | 0.9723 | 0.8635 |
@@ -63,7 +69,7 @@ Political statements (0.7427 vs 0.7640) and Job scams (0.6337 vs 0.6729) are bel
 - **Political statements:** F1 is a weak measure here. AUC is only about 0.67, and the all-deceptive answer scores 0.783, higher than both my result and the paper's. Most of the confident false alarms mention Obama or Obamacare, which may be a topic shortcut (not proven).
 - **Job scams:** the test set has only 60 deceptive texts. The model missed 29 of them, and many read like normal job ads. This may be label noise (not verified).
 - **What I tried:** longer inputs and more epochs, class weights, undersampling, RoBERTa, a higher learning rate, and threshold tuning (see "What was tried"). I kept the best setting on validation for each domain.
-- **What I did not do:** tune on the test set. The only gain I saw (Political 0.783 with threshold tuning) is the same as the trivial answer, so I do not count it. I also did not run more seeds, use a larger model or build the adapter methods. I do not know how much the paper's number moves between runs.
+- **What I did not do:** tune on the test set. The only gain I saw (Political 0.783 with threshold tuning) is the same as the trivial answer, so I do not count it. I also did not use a larger model or build the adapter methods. I do not know how much the paper's number moves between runs.
 
 ## Extra (not part of the task): cross-domain transfer
 
@@ -98,9 +104,9 @@ A simple model that counts words and word pairs, with no pre-trained language mo
 | Domain | TF-IDF F1 @0.5 | TF-IDF F1 @val-tuned thr | AUC | AP | Transformer F1 @0.5 |
 |---|---|---|---|---|---|
 | SMS | 0.9606 | 0.9572 | 0.998 | 0.993 | 0.9883 |
-| Phishing | 0.9758 | 0.9792 | 0.999 | 0.998 | 0.9860 |
-| Fake news | 0.9338 | 0.9324 | 0.986 | 0.980 | 0.9841 |
-| Product reviews | 0.6526 | 0.6966 | 0.720 | 0.722 | 0.7192 |
+| Phishing | 0.9758 | 0.9792 | 0.999 | 0.998 | 0.9893 |
+| Fake news | 0.9338 | 0.9324 | 0.986 | 0.980 | 0.9852 |
+| Product reviews | 0.6526 | 0.6966 | 0.720 | 0.722 | 0.7197 |
 | Twitter rumours | 0.8043 | 0.8116 | 0.940 | 0.897 | 0.8199 |
 | Political statements | 0.7523 | 0.7838 | 0.650 | 0.761 | 0.7427 |
 | Job scams | 0.4810 | 0.6292 | 0.952 | 0.729 | 0.6337 |
@@ -110,15 +116,15 @@ A paired bootstrap on the same test texts (`python -m src.paired results_pred`, 
 | Domain | Difference | 95% CI | Real difference? |
 |---|---|---|---|
 | SMS | +0.028 | [+0.006, +0.052] | yes, transformer better |
-| Phishing | +0.010 | [+0.001, +0.020] | borderline, transformer slightly better |
-| Fake news | +0.050 | [+0.039, +0.062] | yes, transformer better |
-| Product reviews | +0.067 | [+0.045, +0.090] | yes, transformer better |
+| Phishing | +0.014 | [+0.004, +0.022] | yes, transformer better |
+| Fake news | +0.051 | [+0.040, +0.064] | yes, transformer better |
+| Product reviews | +0.067 | [+0.046, +0.091] | yes, transformer better |
 | Political statements | -0.010 | [-0.030, +0.011] | no |
 | Twitter rumours | +0.016 | [-0.026, +0.058] | no |
 | Job scams | +0.153 | [+0.038, +0.285] | yes at 0.5, but see below |
 
 - Job scams: the gap at 0.5 comes mostly from TF-IDF's poorly scaled probabilities. With thresholds chosen on validation, both models reach about the same F1 (TF-IDF 0.629, transformer 0.628), and AP is 0.729 vs 0.725.
-- The intervals cover test-sampling noise only. The transformer rows for Political, Twitter and Job scams are 3-seed ensembles; TF-IDF is a single model.
+- The intervals cover test-sampling noise only. All transformer rows are 3-seed ensembles; TF-IDF is a single model.
 - On Product reviews, TF-IDF at 0.5 (0.653) is below the trivial classifier (0.667).
 - The highest-weight words suggest possible shortcuts (hypotheses, not proof): event names in Twitter (charliehebdo, ferguson); enron, dnc, 2001 and 2002 as "genuine" words in phishing, so the two classes may come from different sources; obamacare in Political.
 
@@ -126,7 +132,7 @@ A paired bootstrap on the same test texts (`python -m src.paired results_pred`, 
 
 ## What was tried
 
-Models were chosen on validation F1 only. The test split was scored once per run. Numbers are validation F1.
+Models were chosen on validation F1 only. The test split was scored once per run. Numbers are validation F1. In every run, the model after the last epoch (epoch 3) is the one that is scored. I did not pick a "best epoch", and no checkpoints are saved.
 
 | Setup | Job scams | Political | Twitter |
 |---|---|---|---|
@@ -155,7 +161,7 @@ These are hypotheses and were not verified.
 - Source: on 4 Nov 2026 I compared all 21 `.jsonl` files of the official repo `redasers/difraud` with the files used here from `difraud/difraud`. They are byte-identical (same SHA-256).
 - Job scams: no text appears in both train and test.
 - Phishing (`python -m src.overlap --domain phishing`, prints counts only):
-  - 14 of 1,528 test texts are identical (exact match on `text`) to a train text, all with the same label. Removing them changes test F1 from 0.9860 to 0.9857.
+  - 14 of 1,528 test texts are identical (exact match on `text`) to a train text, all with the same label. Removing them changes test F1 of the seed-42 run from 0.9860 to 0.9857.
   - Train has 79 extra copies of texts already in train, with no label conflicts.
   - Ignoring case, spacing and links gives 20 test texts in train and 101 extra train copies, again with no label conflicts.
   - The dataset page says duplicates within a domain were dropped, but a few identical texts remain by these checks. The test split was left unchanged so scores stay comparable with the paper.
@@ -163,7 +169,7 @@ These are hypotheses and were not verified.
 ## Limitations
 
 - GPU training is not bit-for-bit repeatable, even with fixed seeds. Job scams (RoBERTa, seed 42) gave test F1 0.6465 and 0.6139 on two runs.
-- Four domains (SMS, phishing, fake news, product reviews) have one run each. Seeds 42, 1 and 2 were used only for Twitter, Political and Job scams.
+- All 7 domains have 3 seeds (42, 1, 2) and the reported numbers are their ensembles. Three seeds are still few, so the seed spread is only a rough guide.
 - The confidence intervals do not include training randomness or threshold selection.
 - Only BERT-base and RoBERTa-base were tested.
 
@@ -171,7 +177,7 @@ These are hypotheses and were not verified.
 
 Tested on Google Colab (T4 GPU, Python 3.13).
 
-Library versions in the Colab session of the latest runs (cross-domain transfer): Python 3.13.16, torch 2.11.0+cu130, transformers 4.46.3, numpy 2.4.6, scikit-learn 1.6.1. `transformers`, `accelerate` and `huggingface_hub` are pinned in `requirements.txt`; the others come from Colab. Every result file records its own torch and transformers versions.
+Library versions in the Colab session of the latest runs (3-seed runs and cross-domain transfer): Python 3.13.16, torch 2.11.0+cu130, transformers 4.46.3, numpy 2.4.6, scikit-learn 1.6.1. `transformers`, `accelerate` and `huggingface_hub` are pinned in `requirements.txt`; the others come from Colab. Every result file records its own torch and transformers versions.
 
 ```
 pip install -r requirements.txt
@@ -219,3 +225,11 @@ run_all.sh      runs all 7 domains
 make_report.sh  rebuilds all tables and the figure from saved runs
 run_transfer.sh cross-domain experiment; results in results_transfer/
 ```
+
+## Next steps
+
+- **Test the shortcut ideas.** Mask the words a simple model relies on (event names, source names, topic words) and measure the drop, with random words as a control. Then evaluate with splits by event or source.
+- **Find which cues transfer.** Several seeds with intervals, leave-one-domain-out training, and simple linguistic features against learned features.
+- **Check label quality.** Look for confident disagreements between models and labels, and have experts review a small sample. Job scams first.
+- **Try stronger methods under the same rules.** Adapter methods, larger models and the explainable few-shot LLM approach, same splits, same seed protocol, choices made on validation data only.
+- **Report better.** Trivial baseline, AUC and AP next to F1 in every table; thresholds chosen from the cost of a missed scam against a false alarm.
