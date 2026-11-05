@@ -66,7 +66,7 @@ The IWSPA 2024 paper "LLMs for Explainable Few-shot Deception Detection" (Boumbe
 Political statements (0.7427 vs 0.7640) and Job scams (0.6337 vs 0.6729) are below the paper's plain fine-tuning row. What I know:
 
 - **The gap is not clearly real.** In both domains the paper's number is inside my 95% confidence interval. On Job scams, two runs of the same code gave 0.6465 and 0.6139, so a gap of 0.04 is within the change between runs.
-- **Political statements:** F1 is a weak measure here. AUC is only about 0.67, and the all-deceptive answer scores 0.783, higher than both my result and the paper's. Most of the confident false alarms mention Obama or Obamacare, which may be a topic shortcut (not proven).
+- **Political statements:** F1 is a weak measure here. AUC is only about 0.67, and the all-deceptive answer scores 0.783, higher than both my result and the paper's. Most of the confident false alarms mention Obama or Obamacare. I tested this with the TF-IDF model: removing its top 20 "deceptive" words (including obamacare and obama) did not lower F1 or AUC more than removing 20 random words (see "Shortcut test"). So there is no sign of a topic shortcut in TF-IDF; I did not test BERT.
 - **Job scams:** the test set has only 60 deceptive texts. The model missed 29 of them, and many read like normal job ads. This may be label noise (not verified).
 - **What I tried:** longer inputs and more epochs, class weights, undersampling, RoBERTa, a higher learning rate, and threshold tuning (see "What was tried"). I kept the best setting on validation for each domain.
 - **What I did not do:** tune on the test set. The only gain I saw (Political 0.783 with threshold tuning) is the same as the trivial answer, so I do not count it. I also did not use a larger model or build the adapter methods. I do not know how much the paper's number moves between runs.
@@ -126,9 +126,21 @@ A paired bootstrap on the same test texts (`python -m src.paired results_pred`, 
 - Job scams: the gap at 0.5 comes mostly from TF-IDF's poorly scaled probabilities. With thresholds chosen on validation, both models reach about the same F1 (TF-IDF 0.629, transformer 0.628), and AP is 0.729 vs 0.725.
 - The intervals cover test-sampling noise only. All transformer rows are 3-seed ensembles; TF-IDF is a single model.
 - On Product reviews, TF-IDF at 0.5 (0.653) is below the trivial classifier (0.667).
-- The highest-weight words suggest possible shortcuts (hypotheses, not proof): event names in Twitter (charliehebdo, ferguson); enron, dnc, 2001 and 2002 as "genuine" words in phishing, so the two classes may come from different sources; obamacare in Political.
+- The highest-weight words suggest possible shortcuts (hypotheses, not proof): event names in Twitter (charliehebdo, ferguson); enron, dnc, 2001 and 2002 as "genuine" words in phishing, so the two classes may come from different sources; obamacare in Political (tested below for Political only; the Twitter and phishing ideas are not tested).
 
 ![summary](summary.png)
+
+## Shortcut test (Political statements, TF-IDF)
+
+Question: does the simple model depend on its top "deceptive" words? I removed the 20 single words with the largest "deceptive" weights (obamacare, work, liberal, democrats, white, idea, over, stimulus, wisconsin, ethics, face, china, president, lost, obama, began, changed, supports, will, policies) from all texts, refit, and scored the test set. Control: 20 random words of similar frequency removed, 5 repeats. Run with `python -m src.shortcut --domain political_statements --k 20`.
+
+| Setting | F1 @0.5 | AUC |
+|---|---|---|
+| TF-IDF, all words | 0.7523 | 0.650 |
+| Top 20 words removed | 0.7537 | 0.646 |
+| 20 random words removed (mean of 5) | 0.7512 | 0.650 |
+
+Removing the top words did not hurt more than removing random words (F1 +0.001, AUC -0.003). So there is no sign that this model leans on obamacare or the other top words; its weak signal (AUC 0.65) is spread over many words. Limits: TF-IDF only (not BERT), one domain, one run. It does not prove that BERT has no shortcut.
 
 ## What was tried
 
@@ -153,7 +165,7 @@ What did not work:
 
 These are hypotheses and were not verified.
 - Job scams: at threshold 0.5, 29 of 60 deceptive test texts were missed, often with probability near 0, and many read like normal job ads. Some texts labeled genuine contain classic scam cues. This suggests label noise or cues outside the text.
-- Political statements: 11 of the 15 most confident false positives mention Obama or Obamacare, which suggests a topic shortcut. Missed deceptive texts are mostly neutral statistics.
+- Political statements: 11 of the 15 most confident false positives mention Obama or Obamacare, but the shortcut test on TF-IDF did not show a dependence on these words (see "Shortcut test"). Missed deceptive texts are mostly neutral statistics.
 - Product reviews: the IWSPA 2024 LLM paper (Section 5.3) suspects the models pick up the style of the crowd workers who wrote part of the deceptive reviews. This was not tested here.
 
 ## Data checks
@@ -190,6 +202,7 @@ python -m src.threshold results_pred                               # validation-
 python -m src.errors --domain job_scams --run results_pred/<file>.json --kind fn --n 25
 python -m src.dupes --domain phishing --run results_pred/<file>.json
 python -m src.overlap --domain phishing                            # repeated-text check
+python -m src.shortcut --domain political_statements --k 20   # shortcut test (TF-IDF, CPU)
 python -m pytest -q tests                                          # unit tests
 bash make_report.sh                                                # rebuild all tables and the figure (no GPU needed)
 ```
@@ -214,7 +227,7 @@ The dataset contains real scam and phishing texts, so it is treated as untrusted
 
 ```
 src/            data.py, train.py, analyze.py, threshold.py, errors.py, dupes.py, overlap.py,
-                aggregate.py, tfidf.py, paired.py, figure.py, transfer.py
+                aggregate.py, tfidf.py, paired.py, figure.py, transfer.py, shortcut.py
 tests/          unit tests (pytest)
 results*/       one JSON per run (metrics, settings, library versions, saved scores)
 results_pred/   final runs with saved predictions, plus analysis.md
@@ -228,7 +241,7 @@ run_transfer.sh cross-domain experiment; results in results_transfer/
 
 ## Next steps
 
-- **Test the shortcut ideas.** Mask the words a simple model relies on (event names, source names, topic words) and measure the drop, with random words as a control. Then evaluate with splits by event or source.
+- **Test the shortcut ideas further.** I only tested Political with TF-IDF. Next: the same masking test on BERT, and on Twitter (event names) and phishing (source names), then evaluate with splits by event or source.
 - **Find which cues transfer.** Several seeds with intervals, leave-one-domain-out training, and simple linguistic features against learned features.
 - **Check label quality.** Look for confident disagreements between models and labels, and have experts review a small sample. Job scams first.
 - **Try stronger methods under the same rules.** Adapter methods, larger models and the explainable few-shot LLM approach, same splits, same seed protocol, choices made on validation data only.
